@@ -3,18 +3,42 @@ use 5.008001;
 use strict;
 use warnings;
 
-our $VERSION = "0.01";
+our $VERSION = "0.02";
 
 use Config;
 use CPAN::DistnameInfo;
-use File::Basename;
+use File::Basename qw/basename/;
 use JSON;
 use List::UtilsBy qw/max_by/;
 use Module::Metadata;
-use version 0.77;
+use version 0.77 ();
 use Getopt::Long ();
 use Pod::Usage ();
 
+our @MIRRORS = qw/http%www.cpan.org http%cpan.metacpan.org/;
+
+use Class::Accessor::Lite::Lazy 0.03 (
+    new     => 1,
+    ro_lazy => {
+        packages_file => sub {
+            max_by { +(stat($_))[9] } #mtime
+            grep {-f $_}
+            map  {
+                "$ENV{HOME}/.cpanm/sources/$_/02packages.details.txt";
+            } @MIRRORS;
+        },
+        installed_base => sub { $Config{sitelibexp} },
+        search_inc     => sub {
+            my $d = shift->installed_base;
+            [$d, "$d/$Config{archname}"];
+        },
+        meta_dir => sub {
+            shift->installed_base . "/$Config{archname}/.meta";
+        }
+    },
+);
+
+## class methods
 sub run {
     my ($class, @argv) = @_;
 
@@ -62,24 +86,24 @@ sub resolve_modules_from_cpanfile {
     grep { $_ ne 'perl' } @modules;
 }
 
-sub new {
-    bless {}, shift;
-}
 
+## object methods
 sub clone_modules {
     my ($self, @modules) = @_;
 
     for my $module (@modules) {
         my $dist_path = $self->search_mirror_index($module);
+        unless ($dist_path) {
+            warn "skip $module: distribution is not found in packages file.\n";
+            next;
+        }
+
         my $d = CPAN::DistnameInfo->new($dist_path);
         my $dist_name = $d->dist;
 
-        unless (Module::Metadata->new_from_module($module)) {
-            print "Installing $module\n";
-            !system 'cpanm', '--notest', $module or do {
-                warn "Failed installing $module :" . ($! || '') . "\n";
-                next;
-            };
+        unless (Module::Metadata->new_from_module($module, inc => $self->search_inc)) {
+            warn "skip $module: not installed in site_perl.\n";
+            next;
         }
 
         my $repo = $self->resolve_repo($dist_name);
@@ -96,47 +120,36 @@ sub clone_modules {
 sub resolve_repo {
     my ($self, $dist_name) = @_;
 
-    my $base = "$Config{sitearchexp}/.meta";
+    my $base = $self->meta_dir;
     my @dirs = glob "$base/$dist_name*";
 
-    my @candidate_dirs;
+    my @candidate_metas;
     for my $d (@dirs) {
         my $dirbase = basename $d;
-        my ($version) = $dirbase =~ m!\A\Q$dist_name\E-([^-]+)\z!ms;
-        next unless $version;
-        push @candidate_dirs, [$d, $version];
+        next unless $dirbase =~ m!\A\Q$dist_name\E-[^-]+\z!ms;
+
+        my $meta_json = "$d/MYMETA.json";
+        next unless -f $meta_json && -r $meta_json;
+
+        my $meta = decode_json(do {
+            local $/;
+            open my $fh, '<', $meta_json or die $!;
+            <$fh>
+        });
+
+        push @candidate_metas, $meta;
     }
 
-    my $dir = max_by { version->parse($_->[1]) } @candidate_dirs;
-       $dir = $dir->[0];
+    my $meta = max_by { version->parse($_->{version})->numify } @candidate_metas;
 
-    my $meta = "$dir/MYMETA.json";
-    my $meta_info = decode_json(do {
-        local $/;
-        open my $fh, '<', $meta or die $!;
-        <$fh>
-    });
-
-    $meta_info->{resources}{repository}{url};
-}
-
-our @MIRRORS = qw/http%www.cpan.org http%cpan.metacpan.org/;
-
-sub packages_file {
-    my $self = shift;
-
-    $self->{packages_file} ||=
-        max_by { +(stat($_))[9] } #mtime
-        grep {-f $_}
-        map  {
-            "$ENV{HOME}/.cpanm/sources/$_/02packages.details.txt";
-        } @MIRRORS;
+    $meta && $meta->{resources}{repository}{url};
 }
 
 sub search_mirror_index {
     my ($self, $module) = @_;
 
-    open my $fh, '<', $self->packages_file or return;
+    my $packages_file = $self->packages_file or die 'no packages file found';
+    open my $fh, '<', $packages_file or die $!;
     while (<$fh>) {
         if (my (undef, $tar_path) = $_ =~ m!^
             \Q$module\E

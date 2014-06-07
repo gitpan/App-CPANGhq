@@ -28,9 +28,10 @@ no_index:
 provides:
   App::CPANGhq:
     file: lib/App/CPANGhq.pm
-    version: '0.01'
+    version: '0.02'
 requires:
   CPAN::DistnameInfo: '0'
+  Class::Accessor::Lite::Lazy: '0.03'
   Getopt::Long: '0'
   JSON: '0'
   List::UtilsBy: '0'
@@ -43,5 +44,5 @@ resources:
   bugtracker: https://github.com/Songmu/p5-App-CPANGhq/issues
   homepage: https://github.com/Songmu/p5-App-CPANGhq
   repository: git://github.com/Songmu/p5-App-CPANGhq.git
-version: '0.01'
+version: '0.02'
 x_authority: cpan:SONGMU
