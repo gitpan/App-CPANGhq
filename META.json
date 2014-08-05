@@ -4,7 +4,7 @@
       "Songmu <y.songmu@gmail.com>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Minilla/v1.1.0",
+   "generated_by" : "Minilla/v2.1.1",
    "license" : [
       "perl_5"
    ],
@@ -28,8 +28,7 @@
    "prereqs" : {
       "configure" : {
          "requires" : {
-            "CPAN::Meta" : "0",
-            "CPAN::Meta::Prereqs" : "0",
+            "Devel::CheckBin" : "0",
             "Module::Build" : "0.38"
          }
       },
@@ -44,16 +43,11 @@
       },
       "runtime" : {
          "requires" : {
-            "CPAN::DistnameInfo" : "0",
+            "App::CPANRepo" : "0",
             "Class::Accessor::Lite::Lazy" : "0.03",
             "Getopt::Long" : "0",
-            "JSON" : "0",
-            "List::UtilsBy" : "0",
-            "Module::CPANfile" : "0",
-            "Module::Metadata" : "0",
             "Pod::Usage" : "0",
-            "perl" : "5.008001",
-            "version" : "0.77"
+            "perl" : "5.008001"
          }
       },
       "test" : {
@@ -65,7 +59,7 @@
    "provides" : {
       "App::CPANGhq" : {
          "file" : "lib/App/CPANGhq.pm",
-         "version" : "0.02"
+         "version" : "0.10"
       }
    },
    "release_status" : "stable",
@@ -79,6 +73,9 @@
          "web" : "https://github.com/Songmu/p5-App-CPANGhq"
       }
    },
-   "version" : "0.02",
-   "x_authority" : "cpan:SONGMU"
+   "version" : "0.10",
+   "x_authority" : "cpan:SONGMU",
+   "x_contributors" : [
+      "Tatsuhiko Miyagawa <miyagawa@bulknews.net>"
+   ]
 }

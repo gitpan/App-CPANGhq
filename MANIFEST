@@ -8,7 +8,6 @@ lib/App/CPANGhq.pm
 minil.toml
 script/cpan-ghq
 t/00_compile.t
-t/01_basic.t
 t/data/02packages.details.txt
 t/data/meta/Parse-Crontab-0.04/MYMETA.json
 t/data/meta/Riji-v0.0.11/MYMETA.json
